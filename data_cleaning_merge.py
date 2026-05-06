@@ -3,10 +3,10 @@ import json
 import os
 
 business_path = "data/Yelp JSON/yelp_academic_dataset_business.json"
-review_path = "data//Yelp JSON/yelp_academic_dataset_review.json"
+review_path = "data/Yelp JSON/yelp_academic_dataset_review.json"
 
 output_merged = "data/100家中餐厅评论结果.csv"
-output_biz = "data//100家中餐厅结果.csv"
+output_biz = "data/100家中餐厅结果.csv"
 
 # 自动创建输出目录
 for path in [output_merged, output_biz]:
