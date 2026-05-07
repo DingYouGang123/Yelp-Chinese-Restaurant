@@ -1,0 +1,205 @@
+---
+title: "Untitled"
+author: "张子杰"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(vader)
+library(readxl)
+library(car)
+library(ggplot2)
+```
+
+
+```{r}
+data_10 <- read_excel("C:\\Users\\86180\\Desktop\\毕业材料\\毕业论文\\论文数据\\参与排序的10家中餐厅.xlsx")
+```
+
+
+```{r}
+restaurant_avg <- data_10 %>%
+  group_by(name) %>%
+  summarise(
+    price_level = mean(price_level, na.rm = TRUE),
+    stars_y = mean(stars_y, na.rm = TRUE),
+    review_count = mean(review_count, na.rm = TRUE),
+    sentiment_score = mean(sentiment_score, na.rm = TRUE),
+    expectation_gap = mean(expectation_gap, na.rm = TRUE)
+  )
+
+print(restaurant_avg)
+```
+
+```{r}
+library(dplyr)
+library(topsis)
+
+```
+
+```{r}
+ahp_weight <- function(mat){
+  
+  eig <- eigen(mat)
+  
+  max_index <- which.max(Re(eig$values))
+  
+  weights <- Re(eig$vectors[,max_index])
+  
+  weights <- weights / sum(weights)
+  
+  return(weights)
+}
+
+topsis <- function(data, weights, impacts){
+  
+  data <- as.matrix(data)
+  
+  norm_data <- data / sqrt(colSums(data^2))
+  
+  weighted <- sweep(norm_data, 2, weights, "*")
+  
+  ideal_best <- numeric(ncol(weighted))
+  ideal_worst <- numeric(ncol(weighted))
+  
+  for(i in 1:ncol(weighted)){
+    
+    if(impacts[i] == "+"){
+      ideal_best[i] <- max(weighted[,i])
+      ideal_worst[i] <- min(weighted[,i])
+    } else{
+      ideal_best[i] <- min(weighted[,i])
+      ideal_worst[i] <- max(weighted[,i])
+    }
+  }
+  
+  dist_best <- sqrt(rowSums((weighted - ideal_best)^2))
+  dist_worst <- sqrt(rowSums((weighted - ideal_worst)^2))
+  
+  score <- dist_worst / (dist_best + dist_worst)
+  
+  return(score)
+}
+```
+
+
+
+
+```{r}
+#评分>评论数>价格
+ahp_matrix1 <- matrix(c(
+1,   1/3, 1/5,
+3,   1,   1/3,
+5,   3,   1
+), nrow=3, byrow=TRUE)
+weights1 <- ahp_weight(ahp_matrix1)
+
+weights1
+
+```
+
+```{r}
+data1 <- restaurant_avg[,c(
+"price_level",
+"stars_y",
+"review_count"
+)]
+
+impacts1 <- c("-", "+", "+")
+
+score1 <- topsis(data1, weights1, impacts1)
+
+restaurant_avg$score_no_text <- score1
+
+rank_no_text <- restaurant_avg[order(-score1),]
+rank_no_text
+```
+
+```{r}
+#真实体验 > 平台评分 > 评论数量 > 价格
+ahp_matrix2 <- matrix(c(
+1,   1/3, 1/5, 1/7,
+3,   1,   1/3, 1/5,
+5,   3,   1,   1/3,
+7,   5,   3,   1
+), nrow=4, byrow=TRUE)
+weights2 <- ahp_weight(ahp_matrix2)
+
+weights2
+```
+```{r}
+data2 <- restaurant_avg[,c(
+"price_level",
+"stars_y",
+"review_count",
+"sentiment_score"
+)]
+
+impacts2 <- c("-", "+", "+", "+")
+
+score2 <- topsis(data2, weights2, impacts2)
+
+restaurant_avg$score_with_text <- score2
+rank_with_text <- restaurant_avg[order(-score2),]
+rank_with_text
+```
+
+```{r}
+compare <- restaurant_avg[,c(
+"name",
+"score_no_text",
+"score_with_text"
+)]
+
+compare
+```
+```{r}
+restaurant_avg$rank_no_text <- rank(-restaurant_avg$score_no_text)
+
+restaurant_avg$rank_with_text <- rank(-restaurant_avg$score_with_text)
+
+restaurant_avg$rank_change <- restaurant_avg$rank_no_text -
+                               restaurant_avg$rank_with_text
+result <- restaurant_avg[order(restaurant_avg$rank_no_text), c(
+"name",
+"rank_no_text",
+"rank_with_text",
+"rank_change"
+)]
+
+print(result)
+```
+```{r}
+result <- restaurant_avg[order(-restaurant_avg$score_with_text), c(
+"name",
+"price_level",
+"stars_y",
+""
+"rank_with_text",
+"rank_no_text",
+"rank_change"
+)]
+
+print(result)
+```
+```{r}
+output_path100<- "C:/Users/86180/Desktop/毕业材料/毕业论文/论文数据/排序结果.csv"
+write.csv(result,output_path100,row.names = FALSE,fileEncoding = "UTF-8")
+
+cat("成功")
+```
+```{r}
+result <- restaurant_avg[order(-restaurant_avg$score_with_text), c(
+"name",
+"price_level",
+"star_y",
+"review_count",
+"rank_with_text",
+"rank_no_text"
+)]
+
+print(result)
+```
+
